@@ -1,287 +1,152 @@
 import { state } from "./state.js";
-import { t, i18n } from "./i18n.js";
-import { els, getDateKey, getMonthPrefix, renderWeekdays, openDayModal } from "./ui.js";
-import { saveCurrentCalendar } from "./db.js";
+import { t } from "./i18n.js";
+import { els } from "./ui.js";
+import {
+  inviteUserByEmail,
+  updateMemberRole,
+  removeMember,
+  leaveSharedCalendar
+} from "./db.js";
 
-export function canEditCurrentCalendar() {
-  if (!state.currentUser || !state.activeCalendarOwnerUid || !state.calendar) return false;
-  if (state.currentUser.uid === state.activeCalendarOwnerUid) return true;
-  return state.calendar.sharedMeta?.[state.currentUser.uid]?.role === "editor";
-}
+export function renderOwnedSharedMembers() {
+  els.ownSharedUsersList.innerHTML = "";
 
-export function getEntry(dateKey) {
-  return state.calendar?.entries?.[dateKey] || null;
-}
+  const sharedMeta = state.calendar?.sharedMeta || {};
+  const ids = Object.keys(sharedMeta);
 
-export function getLegendById(id) {
-  return state.calendar?.legends?.find((l) => l.id === id) || null;
-}
-
-export function getLegendTotalCount(legendId) {
-  return Object.values(state.calendar?.entries || {}).filter((entry) => entry?.legendId === legendId).length;
-}
-
-export function getLegendRangeCount(legendId) {
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth();
-
-  if (state.currentView === "month") {
-    const prefix = getMonthPrefix(year, month);
-    return Object.entries(state.calendar?.entries || {}).filter(([key, entry]) => {
-      return key.startsWith(prefix) && entry?.legendId === legendId;
-    }).length;
+  if (!ids.length && state.activeCalendarOwnerUid === state.currentUser?.uid) {
+    const empty = document.createElement("div");
+    empty.className = "member-row";
+    empty.innerHTML = `<div>${t(state.lang, "noSharedUsers")}</div>`;
+    els.ownSharedUsersList.appendChild(empty);
+    return;
   }
 
-  const yearPrefix = `${year}-`;
-  return Object.entries(state.calendar?.entries || {}).filter(([key, entry]) => {
-    return key.startsWith(yearPrefix) && entry?.legendId === legendId;
-  }).length;
-}
-
-export function renderLegendEditor() {
-  if (!state.calendar) return;
-
-  els.legendList.innerHTML = "";
-
-  state.calendar.legends.forEach((legend) => {
+  ids.forEach((uid) => {
+    const item = sharedMeta[uid];
     const row = document.createElement("div");
-    row.className = "legend-item";
-
-    const color = document.createElement("input");
-    color.type = "color";
-    color.className = "legend-color";
-    color.value = legend.color;
-    color.disabled = !canEditCurrentCalendar();
+    row.className = "member-row";
 
     const main = document.createElement("div");
+    main.innerHTML = `
+      <div><strong>${item.name || item.email || uid}</strong></div>
+      <div class="small">${item.email || ""}</div>
+    `;
 
-    const input = document.createElement("input");
-    input.value = legend.label;
-    input.disabled = !canEditCurrentCalendar();
-
-    const count = document.createElement("div");
-    count.className = "legend-count";
-    count.textContent =
-      state.lang === "zh"
-        ? `当前 ${getLegendRangeCount(legend.id)} 次 / 总共 ${getLegendTotalCount(legend.id)} 次`
-        : `${getLegendRangeCount(legend.id)} in range / ${getLegendTotalCount(legend.id)} total`;
-
-    color.addEventListener("input", async () => {
-      legend.color = color.value;
-      await saveCurrentCalendar();
+    const roleSelect = document.createElement("select");
+    roleSelect.innerHTML = `
+      <option value="editor">${t(state.lang, "roleEditor")}</option>
+      <option value="viewer">${t(state.lang, "roleViewer")}</option>
+    `;
+    roleSelect.value = item.role || "editor";
+    roleSelect.disabled = state.activeCalendarOwnerUid !== state.currentUser?.uid;
+    roleSelect.addEventListener("change", async () => {
+      try {
+        await updateMemberRole(uid, roleSelect.value);
+        els.shareStatus.textContent = t(state.lang, "roleUpdated");
+      } catch {
+        els.shareStatus.textContent = t(state.lang, "roleUpdateFail");
+      }
     });
 
-    input.addEventListener("change", async () => {
-      legend.label = input.value.trim() || (state.lang === "zh" ? "未命名" : "Untitled");
-      await saveCurrentCalendar();
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "danger";
+    removeBtn.textContent = t(state.lang, "removeMember");
+    removeBtn.disabled = state.activeCalendarOwnerUid !== state.currentUser?.uid;
+    removeBtn.addEventListener("click", async () => {
+      try {
+        await removeMember(uid);
+        els.shareStatus.textContent = t(state.lang, "memberRemoved");
+      } catch {
+        els.shareStatus.textContent = t(state.lang, "memberRemoveFail");
+      }
     });
 
-    main.appendChild(input);
-    main.appendChild(count);
-
-    row.appendChild(color);
     row.appendChild(main);
-    els.legendList.appendChild(row);
+    row.appendChild(roleSelect);
+    row.appendChild(removeBtn);
+    els.ownSharedUsersList.appendChild(row);
   });
 }
 
-export function renderStats() {
-  const total = Object.keys(state.calendar?.entries || {}).length;
-  els.totalCount.textContent = total;
+export function renderSharedWithMe() {
+  els.sharedCalendarsList.innerHTML = "";
 
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth();
-
-  if (state.currentView === "month") {
-    const prefix = getMonthPrefix(year, month);
-    const count = Object.keys(state.calendar?.entries || {}).filter((k) => k.startsWith(prefix)).length;
-    els.rangeCount.textContent = count;
-    els.rangeLabel.textContent = t(state.lang, "rangeMonth");
-  } else {
-    const yearPrefix = `${year}-`;
-    const count = Object.keys(state.calendar?.entries || {}).filter((k) => k.startsWith(yearPrefix)).length;
-    els.rangeCount.textContent = count;
-    els.rangeLabel.textContent = t(state.lang, "rangeYear");
+  if (!state.sharedCalendars.length) {
+    const empty = document.createElement("div");
+    empty.className = "shared-item";
+    empty.textContent = t(state.lang, "noSharedCalendars");
+    els.sharedCalendarsList.appendChild(empty);
+    return;
   }
-}
 
-export function renderMonthView() {
-  const year = state.currentDate.getFullYear();
-  const month = state.currentDate.getMonth();
+  state.sharedCalendars.forEach((calendar) => {
+    const role = calendar.sharedMeta?.[state.currentUser.uid]?.role || "viewer";
+    const isCurrent = state.activeCalendarId === calendar.id;
 
-  els.mainTitle.textContent =
-    state.lang === "zh"
-      ? `${year}年 ${month + 1}月`
-      : `${i18n[state.lang].months[month]} ${year}`;
+    const item = document.createElement("div");
+    item.className = "shared-item";
 
-  els.calendarGrid.innerHTML = "";
+    item.innerHTML = `
+      <h4>${calendar.title || t(state.lang, "sharedCalendarName")}</h4>
+      <p>${t(state.lang, "sharedBy")}：${calendar.ownerName || calendar.ownerEmail || ""}</p>
+      <div class="small">${t(state.lang, "sharedRole")}：${role === "editor" ? t(state.lang, "roleEditor") : t(state.lang, "roleViewer")}</div>
+    `;
 
-  const firstDay = new Date(year, month, 1);
-  const startWeekday = firstDay.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-  const todayKey = getDateKey(new Date());
+    const btnRow = document.createElement("div");
+    btnRow.className = "row-wrap mt16";
 
-  for (let i = 0; i < 42; i++) {
-    let dayNum;
-    let cellDate;
-    let otherMonth = false;
-
-    if (i < startWeekday) {
-      dayNum = daysInPrevMonth - startWeekday + i + 1;
-      cellDate = new Date(year, month - 1, dayNum);
-      otherMonth = true;
-    } else if (i >= startWeekday + daysInMonth) {
-      dayNum = i - (startWeekday + daysInMonth) + 1;
-      cellDate = new Date(year, month + 1, dayNum);
-      otherMonth = true;
-    } else {
-      dayNum = i - startWeekday + 1;
-      cellDate = new Date(year, month, dayNum);
-    }
-
-    const dateKey = getDateKey(cellDate);
-    const entry = getEntry(dateKey);
-    const legend = entry?.legendId ? getLegendById(entry.legendId) : null;
-
-    const day = document.createElement("div");
-    day.className = "day";
-    if (otherMonth) day.classList.add("other-month");
-    if (dateKey === todayKey) day.classList.add("today");
-    if (legend) day.style.background = legend.color;
-
-    day.innerHTML = `<div class="day-number">${dayNum}</div>`;
-
-    if (legend) {
-      const label = document.createElement("div");
-      label.className = "entry-label";
-      label.textContent = legend.label;
-      day.appendChild(label);
-    }
-
-    if (entry?.note) {
-      const note = document.createElement("div");
-      note.className = "entry-note";
-      note.textContent = entry.note;
-      day.appendChild(note);
-    }
-
-    day.addEventListener("click", () => openDayModal(dateKey));
-    els.calendarGrid.appendChild(day);
-  }
-}
-
-export function renderYearView() {
-  const year = state.currentDate.getFullYear();
-
-  els.mainTitle.textContent =
-    state.lang === "zh"
-      ? `${year}年 全年总览`
-      : `${year} Year Overview`;
-
-  els.yearGrid.innerHTML = "";
-
-  for (let month = 0; month < 12; month++) {
-    const box = document.createElement("div");
-    box.className = "mini-month";
-
-    const title = document.createElement("div");
-    title.className = "mini-title";
-    title.textContent = i18n[state.lang].months[month];
-    box.appendChild(title);
-
-    const weekdays = document.createElement("div");
-    weekdays.className = "mini-weekdays";
-    i18n[state.lang].weekdays.forEach((d) => {
-      const el = document.createElement("div");
-      el.textContent = d;
-      weekdays.appendChild(el);
+    const openBtn = document.createElement("button");
+    openBtn.textContent = isCurrent ? t(state.lang, "sharedOpenCurrent") : t(state.lang, "sharedOpenThis");
+    openBtn.disabled = isCurrent;
+    openBtn.addEventListener("click", () => {
+      window.dispatchEvent(new CustomEvent("open-calendar", { detail: calendar.id }));
     });
-    box.appendChild(weekdays);
 
-    const days = document.createElement("div");
-    days.className = "mini-days";
+    const leaveBtn = document.createElement("button");
+    leaveBtn.className = "danger";
+    leaveBtn.textContent = t(state.lang, "leaveShared");
+    leaveBtn.addEventListener("click", async () => {
+      try {
+        await leaveSharedCalendar(calendar.id, state.currentUser.uid);
+        els.shareStatus.textContent = t(state.lang, "leaveSharedSuccess");
+      } catch {
+        els.shareStatus.textContent = t(state.lang, "leaveSharedFail");
+      }
+    });
 
-    const firstDay = new Date(year, month, 1);
-    const startWeekday = firstDay.getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    btnRow.appendChild(openBtn);
+    btnRow.appendChild(leaveBtn);
+    item.appendChild(btnRow);
 
-    for (let i = 0; i < startWeekday; i++) {
-      const empty = document.createElement("div");
-      empty.className = "mini-day empty";
-      days.appendChild(empty);
+    els.sharedCalendarsList.appendChild(item);
+  });
+}
+
+export function renderSharePage() {
+  renderOwnedSharedMembers();
+  renderSharedWithMe();
+}
+
+export async function handleInvite() {
+  if (!state.currentUser) {
+    els.shareStatus.textContent = t(state.lang, "inviteNeedLogin");
+    return;
+  }
+
+  try {
+    await inviteUserByEmail(els.inviteEmailInput.value, els.inviteRoleSelect.value);
+    els.shareStatus.textContent = t(state.lang, "inviteSuccess");
+    els.inviteEmailInput.value = "";
+  } catch (err) {
+    if (err.message === "empty-email") {
+      els.shareStatus.textContent = t(state.lang, "inviteNoEmail");
+    } else if (err.message === "invite-self") {
+      els.shareStatus.textContent = t(state.lang, "inviteSelf");
+    } else if (err.message === "user-not-found") {
+      els.shareStatus.textContent = t(state.lang, "inviteNotFound");
+    } else {
+      els.shareStatus.textContent = t(state.lang, "inviteFail");
     }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      const date = new Date(year, month, d);
-      const dateKey = getDateKey(date);
-      const entry = getEntry(dateKey);
-      const legend = entry?.legendId ? getLegendById(entry.legendId) : null;
-
-      const cell = document.createElement("div");
-      cell.className = "mini-day";
-      if (legend) cell.style.background = legend.color;
-      cell.textContent = d;
-      cell.addEventListener("click", () => openDayModal(dateKey));
-      days.appendChild(cell);
-    }
-
-    box.appendChild(days);
-    els.yearGrid.appendChild(box);
   }
-}
-
-export function renderCalendarPage() {
-  if (!state.calendar) return;
-
-  renderWeekdays();
-  renderLegendEditor();
-  renderStats();
-
-  els.calendarTitleInput.value = state.calendar.title || t(state.lang, "myCalendarName");
-  els.calendarOwnerHint.textContent =
-    state.activeCalendarOwnerUid === state.currentUser?.uid
-      ? t(state.lang, "calendarOwnerHintMine")
-      : t(state.lang, "calendarOwnerHintShared");
-
-  els.calendarTitleInput.disabled = state.activeCalendarOwnerUid !== state.currentUser?.uid;
-  els.saveCalendarTitleBtn.disabled = state.activeCalendarOwnerUid !== state.currentUser?.uid;
-  els.deleteCalendarBtn.disabled = state.activeCalendarOwnerUid !== state.currentUser?.uid;
-
-  if (state.currentView === "month") {
-    renderMonthView();
-  } else {
-    renderYearView();
-  }
-}
-
-export async function setDayLegend(dateKey, legendId) {
-  if (!canEditCurrentCalendar()) return;
-  const oldNote = state.calendar.entries[dateKey]?.note || "";
-  state.calendar.entries[dateKey] = {
-    legendId,
-    note: oldNote
-  };
-  await saveCurrentCalendar();
-}
-
-export async function saveDayNote(dateKey, note) {
-  if (!canEditCurrentCalendar()) return false;
-  if (!state.calendar.entries[dateKey]) {
-    state.calendar.entries[dateKey] = {
-      legendId: null,
-      note: note.trim()
-    };
-  } else {
-    state.calendar.entries[dateKey].note = note.trim();
-  }
-  await saveCurrentCalendar();
-  return true;
-}
-
-export async function clearDay(dateKey) {
-  if (!canEditCurrentCalendar()) return false;
-  delete state.calendar.entries[dateKey];
-  await saveCurrentCalendar();
-  return true;
 }
