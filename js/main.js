@@ -1,40 +1,7 @@
-import { loginWithGoogle, logoutUser, watchAuthState } from "./auth.js";
-import { state } from "./state.js";
-import { t } from "./i18n.js";
-import {
-  els,
-  startProgress,
-  stopProgress,
-  setBusy,
-  showAuthGate,
-  showApp,
-  setUserUI,
-  setPage,
-  setView,
-  applyLanguageToStaticUI,
-  closeDayModal
-} from "./ui.js";
-import {
-  cleanupSubscriptions,
-  ensureProfileExists,
-  subscribeProfile,
-  openFirstAvailableCalendar,
-  subscribeSharedCalendars,
-  subscribeActiveCalendar,
-  createCalendarForUser,
-  loadOwnedCalendars,
-  saveCalendarTitle,
-  deleteCalendarById
-} from "./db.js";
-import {
-  renderCalendarPage,
-  setDayLegend,
-  saveDayNote,
-  clearDay
-} from "./calendar.js";
-import { renderSharePage, handleInvite } from "./share.js";
-import { renderProfile, handleSaveProfile } from "./profile.js";
-
+document.getElementById("gateTitle").textContent = "JS loaded";
+document.getElementById("gateDesc").textContent = "main.js is running";
+document.getElementById("loginBtn").textContent = "Button OK";
+document.getElementById("gateStatus").textContent = "No import error in main.js";
 function canDeleteCurrentCalendar() {
   return state.currentUser && state.activeCalendarOwnerUid === state.currentUser.uid;
 }
