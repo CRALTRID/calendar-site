@@ -11,10 +11,10 @@
 
   <div id="authGate" class="auth-gate">
     <div class="auth-modal">
-      <h1>Challenge Hub</h1>
-      <p id="gateText">请先登录后继续。</p>
-      <button id="loginBtn" class="primary">使用 Google 登录</button>
-      <div id="gateStatus" class="status-text">正在检查登录状态…</div>
+      <h1 id="gateTitle"></h1>
+      <p id="gateDesc"></p>
+      <button id="loginBtn" class="primary"></button>
+      <div id="gateStatus" class="status-text"></div>
     </div>
   </div>
 
@@ -23,58 +23,228 @@
       <div class="brand">
         <div class="brand-badge">C</div>
         <div>
-          <div class="brand-title">Challenge Hub</div>
-          <div class="brand-subtitle">Split files demo</div>
+          <div class="brand-title" id="brandTitle"></div>
+          <div class="brand-subtitle" id="brandSubtitle"></div>
         </div>
       </div>
 
       <div class="sidebar-section">
-        <div class="sidebar-title">Calendar</div>
-        <button id="monthViewBtn" class="sidebar-btn active">Month View</button>
-        <button id="yearViewBtn" class="sidebar-btn">Year View</button>
+        <div class="sidebar-title" id="calendarSectionTitle"></div>
+        <div id="ownedCalendarsList" class="calendar-list"></div>
+        <button id="createCalendarBtn" class="primary full-btn"></button>
       </div>
 
       <div class="sidebar-section">
-        <div class="sidebar-title">Account</div>
+        <div class="sidebar-title" id="viewSectionTitle"></div>
+        <button id="monthViewBtn" class="sidebar-btn active"></button>
+        <button id="yearViewBtn" class="sidebar-btn"></button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title" id="pageSectionTitle"></div>
+        <button class="sidebar-btn page-btn active" data-page="calendarPage" id="navCalendarBtn"></button>
+        <button class="sidebar-btn page-btn" data-page="sharedPage" id="navSharedBtn"></button>
+        <button class="sidebar-btn page-btn" data-page="profilePage" id="navProfileBtn"></button>
+        <button class="sidebar-btn page-btn" data-page="settingsPage" id="navSettingsBtn"></button>
+      </div>
+
+      <div class="sidebar-user">
         <div class="user-card">
-          <img id="userAvatar" class="avatar" src="" alt="avatar" />
+          <img id="userAvatar" class="avatar" alt="avatar" />
           <div class="user-info">
             <div id="userName" class="user-name"></div>
             <div id="userEmail" class="user-email"></div>
           </div>
         </div>
-        <button id="logoutBtn" class="sidebar-btn danger">退出登录</button>
+        <button id="logoutBtn" class="danger full-btn"></button>
       </div>
     </aside>
 
     <main class="main">
-      <div class="topbar">
-        <div>
-          <h2 id="pageTitle">个人挑战日历</h2>
-          <p id="pageDesc">这是拆分文件后的基础版本。</p>
+      <section id="calendarPage" class="page active">
+        <div class="topbar">
+          <div>
+            <h2 id="calendarPageTitle"></h2>
+            <p id="calendarPageDesc"></p>
+          </div>
+          <div class="toolbar">
+            <button id="prevBtn"></button>
+            <button id="todayBtn"></button>
+            <button id="nextBtn"></button>
+          </div>
         </div>
-        <div class="toolbar">
-          <button id="prevBtn">上一个</button>
-          <button id="todayBtn">今天</button>
-          <button id="nextBtn">下一个</button>
-        </div>
-      </div>
 
-      <section id="monthView" class="panel">
-        <div class="panel-header">
-          <h3 id="monthTitle">2026年 3月</h3>
+        <div class="panel title-panel">
+          <div class="row-between">
+            <div>
+              <div class="panel-title" id="calendarTitleLabel"></div>
+              <div class="small" id="calendarOwnerHint"></div>
+            </div>
+          </div>
+          <div class="row-wrap">
+            <input id="calendarTitleInput" type="text" />
+            <button id="saveCalendarTitleBtn" class="primary"></button>
+            <button id="deleteCalendarBtn" class="danger"></button>
+          </div>
         </div>
-        <div id="weekdayRow" class="weekday-row"></div>
-        <div id="calendarGrid" class="calendar-grid"></div>
+
+        <div class="layout">
+          <div class="panel">
+            <div class="row-between mb12">
+              <h3 id="mainTitle"></h3>
+              <div class="small" id="todayHint"></div>
+            </div>
+
+            <div id="monthView">
+              <div id="weekdayRow" class="weekday-row"></div>
+              <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
+
+            <div id="yearView" class="hidden">
+              <div id="yearGrid" class="year-grid"></div>
+            </div>
+          </div>
+
+          <div class="panel side-panel">
+            <div class="row-between mb12">
+              <h3 id="legendPanelTitle"></h3>
+              <div class="small" id="legendPanelHint"></div>
+            </div>
+
+            <div id="legendPanelDesc" class="small mb12"></div>
+            <div id="legendList" class="legend-list"></div>
+
+            <div class="stats">
+              <div class="stat">
+                <strong id="rangeCount">0</strong>
+                <div id="rangeLabel" class="small"></div>
+              </div>
+              <div class="stat">
+                <strong id="totalCount">0</strong>
+                <div id="totalLabel" class="small"></div>
+              </div>
+            </div>
+
+            <div id="calendarBanner" class="banner"></div>
+          </div>
+        </div>
       </section>
 
-      <section id="yearView" class="panel hidden">
-        <div class="panel-header">
-          <h3 id="yearTitle">2026 Year Overview</h3>
+      <section id="sharedPage" class="page">
+        <div class="panel">
+          <h2 id="sharedPageTitle"></h2>
+          <p id="sharedPageDesc"></p>
+
+          <div class="share-grid">
+            <div class="share-box">
+              <h3 id="inviteTitle"></h3>
+              <div id="inviteDesc" class="small mb12"></div>
+              <div class="row-wrap">
+                <input id="inviteEmailInput" type="email" />
+                <select id="inviteRoleSelect">
+                  <option value="editor">editor</option>
+                  <option value="viewer">viewer</option>
+                </select>
+                <button id="inviteBtn" class="primary"></button>
+              </div>
+              <div id="shareStatus" class="status-text"></div>
+            </div>
+
+            <div class="share-box">
+              <h3 id="ownSharedTitle"></h3>
+              <div id="ownSharedDesc" class="small mb12"></div>
+              <div id="ownSharedUsersList"></div>
+            </div>
+          </div>
+
+          <div class="share-box mt16">
+            <h3 id="sharedWithMeTitle"></h3>
+            <div id="sharedWithMeDesc" class="small mb12"></div>
+            <div id="sharedCalendarsList"></div>
+          </div>
         </div>
-        <div id="yearGrid" class="year-grid"></div>
+      </section>
+
+      <section id="profilePage" class="page">
+        <div class="panel">
+          <h2 id="profilePageTitle"></h2>
+          <p id="profilePageDesc"></p>
+
+          <div class="profile-layout">
+            <div class="profile-summary">
+              <img id="profileAvatar" class="avatar-large" alt="avatar" />
+              <div id="profileDisplayName" class="profile-name"></div>
+              <div id="profileDisplayEmail" class="profile-email"></div>
+            </div>
+
+            <div>
+              <div class="profile-form">
+                <div class="field full">
+                  <label id="labelName"></label>
+                  <input id="profileNameInput" type="text" />
+                </div>
+                <div class="field">
+                  <label id="labelEmail"></label>
+                  <input id="profileEmailInput" type="email" disabled />
+                </div>
+                <div class="field">
+                  <label id="labelPhone"></label>
+                  <input id="profilePhoneInput" type="text" />
+                </div>
+                <div class="field">
+                  <label id="labelBirthday"></label>
+                  <input id="profileBirthdayInput" type="date" />
+                </div>
+              </div>
+
+              <div class="row-wrap mt16">
+                <button id="saveProfileBtn" class="primary"></button>
+              </div>
+              <div id="profileStatus" class="status-text"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="settingsPage" class="page">
+        <div class="panel">
+          <h2 id="settingsPageTitle"></h2>
+          <p id="settingsPageDesc"></p>
+
+          <div class="field" style="max-width: 220px;">
+            <label id="languageLabel"></label>
+            <select id="languageSelect">
+              <option value="zh">中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+        </div>
       </section>
     </main>
+  </div>
+
+  <div id="dayModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="row-between mb12">
+        <div>
+          <div id="selectedDateText" class="modal-title"></div>
+          <div id="dateModalDesc" class="small"></div>
+        </div>
+        <button id="closeModalBtn">×</button>
+      </div>
+
+      <div id="optionGrid" class="option-grid"></div>
+
+      <div class="field mt16">
+        <label id="noteLabel"></label>
+        <textarea id="noteInput" rows="4"></textarea>
+      </div>
+
+      <div class="row-wrap mt16">
+        <button id="saveNoteBtn" class="primary"></button>
+        <button id="clearDayBtn"></button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./js/main.js"></script>
