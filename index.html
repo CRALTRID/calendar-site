@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenge Hub</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="topProgress" class="top-progress"></div>
+
+  <div id="authGate" class="auth-gate">
+    <div class="auth-modal">
+      <h1>Challenge Hub</h1>
+      <p id="gateText">请先登录后继续。</p>
+      <button id="loginBtn" class="primary">使用 Google 登录</button>
+      <div id="gateStatus" class="status-text">正在检查登录状态…</div>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-badge">C</div>
+        <div>
+          <div class="brand-title">Challenge Hub</div>
+          <div class="brand-subtitle">Split files demo</div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Calendar</div>
+        <button id="monthViewBtn" class="sidebar-btn active">Month View</button>
+        <button id="yearViewBtn" class="sidebar-btn">Year View</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Account</div>
+        <div class="user-card">
+          <img id="userAvatar" class="avatar" src="" alt="avatar" />
+          <div class="user-info">
+            <div id="userName" class="user-name"></div>
+            <div id="userEmail" class="user-email"></div>
+          </div>
+        </div>
+        <button id="logoutBtn" class="sidebar-btn danger">退出登录</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <h2 id="pageTitle">个人挑战日历</h2>
+          <p id="pageDesc">这是拆分文件后的基础版本。</p>
+        </div>
+        <div class="toolbar">
+          <button id="prevBtn">上一个</button>
+          <button id="todayBtn">今天</button>
+          <button id="nextBtn">下一个</button>
+        </div>
+      </div>
+
+      <section id="monthView" class="panel">
+        <div class="panel-header">
+          <h3 id="monthTitle">2026年 3月</h3>
+        </div>
+        <div id="weekdayRow" class="weekday-row"></div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </section>
+
+      <section id="yearView" class="panel hidden">
+        <div class="panel-header">
+          <h3 id="yearTitle">2026 Year Overview</h3>
+        </div>
+        <div id="yearGrid" class="year-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
