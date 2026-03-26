@@ -130,6 +130,8 @@ export function subscribeActiveCalendar(calendarId, onChange, onError) {
         state.calendar = snap.data();
         state.activeCalendarOwnerUid = state.calendar.ownerUid;
         onChange?.();
+      } else {
+        onError?.(new Error("calendar-not-found"));
       }
     },
     (err) => {
@@ -152,6 +154,7 @@ export async function openFirstAvailableCalendar(user) {
 
 export async function saveCurrentCalendar() {
   if (!state.activeCalendarId || !state.calendar) return;
+
   await setDoc(calendarDocRef(state.activeCalendarId), {
     ...state.calendar,
     updatedAt: Date.now()
