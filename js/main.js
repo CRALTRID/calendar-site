@@ -86,12 +86,41 @@ function renderOwnedCalendars() {
   });
 }
 
+function renderModalLegendOptions() {
+  if (!state.calendar || !state.selectedDateKey) return;
+
+  els.noteInput.value = state.calendar.entries?.[state.selectedDateKey]?.note || "";
+  els.optionGrid.innerHTML = "";
+
+  state.calendar.legends.forEach((legend) => {
+    const item = document.createElement("div");
+    item.className = "option";
+    item.innerHTML = `
+      <div class="swatch" style="background:${legend.color}"></div>
+      <div>
+        <div><strong>${legend.label}</strong></div>
+        <div class="small">${state.lang === "zh" ? "点击选择颜色标签" : "Click to choose this label"}</div>
+      </div>
+    `;
+    item.addEventListener("click", async () => {
+      await setDayLegend(state.selectedDateKey, legend.id);
+      renderAll();
+      renderModalLegendOptions();
+    });
+    els.optionGrid.appendChild(item);
+  });
+}
+
 function renderAll() {
   applyLanguageToStaticUI();
   renderOwnedCalendars();
   renderCalendarPage();
   renderSharePage();
   renderProfile();
+
+  if (!els.dayModal.classList.contains("hidden")) {
+    renderModalLegendOptions();
+  }
 }
 
 async function openCalendar(id) {
@@ -222,48 +251,6 @@ function wireModalActions() {
   });
 }
 
-function wireLegendSelection() {
-  const observer = new MutationObserver(() => {
-    document.querySelectorAll(".option").forEach((el) => {
-      if (el.dataset.wired === "1") return;
-      el.dataset.wired = "1";
-    });
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-}
-
-function renderModalLegendOptions() {
-  if (!state.calendar || !state.selectedDateKey) return;
-
-  els.noteInput.value = state.calendar.entries?.[state.selectedDateKey]?.note || "";
-  els.optionGrid.innerHTML = "";
-
-  state.calendar.legends.forEach((legend) => {
-    const item = document.createElement("div");
-    item.className = "option";
-    item.innerHTML = `
-      <div class="swatch" style="background:${legend.color}"></div>
-      <div>
-        <div><strong>${legend.label}</strong></div>
-        <div class="small">${state.lang === "zh" ? "点击选择颜色标签" : "Click to choose this label"}</div>
-      </div>
-    `;
-    item.addEventListener("click", async () => {
-      await setDayLegend(state.selectedDateKey, legend.id);
-      renderAll();
-      renderModalLegendOptions();
-    });
-    els.optionGrid.appendChild(item);
-  });
-}
-
-const modalObserver = new MutationObserver(() => {
-  if (!els.dayModal.classList.contains("hidden")) {
-    renderModalLegendOptions();
-  }
-});
-modalObserver.observe(els.dayModal, { attributes: true, attributeFilter: ["class"] });
-
 async function handleSignedIn(user) {
   state.currentUser = user;
   setUserUI(user);
@@ -332,7 +319,6 @@ function init() {
   wireProfileActions();
   wireSettingsActions();
   wireModalActions();
-  wireLegendSelection();
 
   watchAuthState(async (user) => {
     if (user) {
