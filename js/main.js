@@ -1,21 +1,59 @@
-import { loginWithGoogle, watchAuthState } from "./auth.js";
+import { loginWithGoogle, logoutUser, watchAuthState } from "./auth.js";
+import { state } from "./state.js";
 
-document.getElementById("gateTitle").textContent = "Challenge Hub";
-document.getElementById("gateDesc").textContent = "Please sign in to continue.";
-document.getElementById("loginBtn").textContent = "Google Login";
-document.getElementById("gateStatus").textContent = "Auth module loaded.";
+const gateTitle = document.getElementById("gateTitle");
+const gateDesc = document.getElementById("gateDesc");
+const loginBtn = document.getElementById("loginBtn");
+const gateStatus = document.getElementById("gateStatus");
+const authGate = document.getElementById("authGate");
+const app = document.getElementById("app");
+const logoutBtn = document.getElementById("logoutBtn");
+const userName = document.getElementById("userName");
+const userEmail = document.getElementById("userEmail");
+const userAvatar = document.getElementById("userAvatar");
+
+gateTitle.textContent = "Challenge Hub";
+gateDesc.textContent = "Please sign in to continue.";
+loginBtn.textContent = "Google Login";
+logoutBtn.textContent = "Logout";
+
+function showGate() {
+  authGate.classList.remove("hidden");
+  app.classList.add("hidden");
+}
+
+function showApp() {
+  authGate.classList.add("hidden");
+  app.classList.remove("hidden");
+}
 
 watchAuthState((user) => {
-  document.getElementById("gateStatus").textContent = user
-    ? `Signed in as ${user.email || "user"}`
-    : "Not signed in";
+  state.currentUser = user;
+
+  if (user) {
+    userName.textContent = user.displayName || "User";
+    userEmail.textContent = user.email || "";
+    userAvatar.src = user.photoURL || "";
+    gateStatus.textContent = `Signed in as ${user.email || "user"}`;
+    showApp();
+  } else {
+    gateStatus.textContent = "Not signed in";
+    showGate();
+  }
 });
 
-document.getElementById("loginBtn").addEventListener("click", async () => {
+loginBtn.addEventListener("click", async () => {
   try {
     await loginWithGoogle();
   } catch (err) {
-    document.getElementById("gateStatus").textContent =
-      err.code || err.message || "login failed";
+    gateStatus.textContent = err.code || err.message || "login failed";
+  }
+});
+
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await logoutUser();
+  } catch (err) {
+    gateStatus.textContent = err.code || err.message || "logout failed";
   }
 });
