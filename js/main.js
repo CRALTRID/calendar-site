@@ -1,16 +1,21 @@
 import { loginWithGoogle, logoutUser, watchAuthState } from "./auth.js";
 import { state } from "./state.js";
+import { renderCalendar } from "./calendar.js";
 
 const gateTitle = document.getElementById("gateTitle");
 const gateDesc = document.getElementById("gateDesc");
 const loginBtn = document.getElementById("loginBtn");
 const gateStatus = document.getElementById("gateStatus");
+
 const authGate = document.getElementById("authGate");
 const app = document.getElementById("app");
+
 const logoutBtn = document.getElementById("logoutBtn");
 const userName = document.getElementById("userName");
 const userEmail = document.getElementById("userEmail");
 const userAvatar = document.getElementById("userAvatar");
+
+const calendarContainer = document.getElementById("calendarContainer");
 
 gateTitle.textContent = "Challenge Hub";
 gateDesc.textContent = "Please sign in to continue.";
@@ -34,10 +39,12 @@ watchAuthState((user) => {
     userName.textContent = user.displayName || "User";
     userEmail.textContent = user.email || "";
     userAvatar.src = user.photoURL || "";
-    gateStatus.textContent = `Signed in as ${user.email || "user"}`;
+
     showApp();
+
+    // ⭐ 关键：渲染日历
+    renderCalendar(calendarContainer, state);
   } else {
-    gateStatus.textContent = "Not signed in";
     showGate();
   }
 });
@@ -46,14 +53,10 @@ loginBtn.addEventListener("click", async () => {
   try {
     await loginWithGoogle();
   } catch (err) {
-    gateStatus.textContent = err.code || err.message || "login failed";
+    gateStatus.textContent = err.message;
   }
 });
 
 logoutBtn.addEventListener("click", async () => {
-  try {
-    await logoutUser();
-  } catch (err) {
-    gateStatus.textContent = err.code || err.message || "logout failed";
-  }
+  await logoutUser();
 });
