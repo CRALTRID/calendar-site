@@ -92,7 +92,7 @@ function fillStaticText() {
 
   if (legendPanelTitle) legendPanelTitle.textContent = "Legend";
   if (legendPanelHint) legendPanelHint.textContent = "Current calendar";
-  if (legendPanelDesc) legendPanelDesc.textContent = "Labels and counts will go here.";
+  if (legendPanelDesc) legendPanelDesc.textContent = "Click a day to cycle white / red / yellow.";
   if (rangeLabel) rangeLabel.textContent = "Recorded this month";
   if (totalLabel) totalLabel.textContent = "Total recorded days";
   if (calendarBanner) calendarBanner.textContent = "Core layout is working.";
@@ -155,6 +155,7 @@ function bindNavigationButtons() {
 function bindSidebarButtons() {
   if (monthViewBtn) {
     monthViewBtn.onclick = () => {
+      state.currentView = "month";
       monthViewBtn.classList.add("active");
       if (yearViewBtn) yearViewBtn.classList.remove("active");
       renderCurrentCalendar();
@@ -163,6 +164,9 @@ function bindSidebarButtons() {
 
   if (yearViewBtn) {
     yearViewBtn.onclick = () => {
+      state.currentView = "year";
+      yearViewBtn.classList.add("active");
+      if (monthViewBtn) monthViewBtn.classList.remove("active");
       alert("Year View will be added next.");
     };
   }
@@ -192,9 +196,29 @@ function bindSidebarButtons() {
   }
 }
 
+function bindPageButtons() {
+  const pages = document.querySelectorAll(".page");
+  const pageButtons = document.querySelectorAll(".page-btn");
+
+  pageButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const pageId = btn.dataset.page;
+      if (!pageId) return;
+
+      pages.forEach((page) => page.classList.remove("active"));
+      pageButtons.forEach((b) => b.classList.remove("active"));
+
+      const target = document.getElementById(pageId);
+      if (target) target.classList.add("active");
+      btn.classList.add("active");
+    });
+  });
+}
+
 fillStaticText();
 bindNavigationButtons();
 bindSidebarButtons();
+bindPageButtons();
 
 watchAuthState((user) => {
   state.currentUser = user;
