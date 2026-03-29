@@ -23,14 +23,20 @@ export async function syncFromCloud() {
 }
 
 // ☁️ 保存到 Firebase
-export async function syncToCloud() {
+export async function syncFromCloud() {
   if (!state.currentUser) return;
 
   try {
-    await saveUserData(state.currentUser.uid, {
-      entries: state.entries
-    });
+    const data = await loadUserData(state.currentUser.uid);
+
+    if (data && data.entries) {
+      // ✅ 合并，而不是覆盖
+      state.entries = {
+        ...state.entries,
+        ...data.entries
+      };
+    }
   } catch (err) {
-    console.error("Save failed:", err);
+    console.error("Load failed:", err);
   }
 }
