@@ -37,6 +37,8 @@ const todayBtn = document.getElementById("todayBtn");
 const nextBtn = document.getElementById("nextBtn");
 
 const calendarTitleLabel = document.getElementById("calendarTitleLabel");
+const calendarOwnerHint = document.getElementById("calendarOwnerHint");
+const calendarTitleInput = document.getElementById("calendarTitleInput");
 const saveCalendarTitleBtn = document.getElementById("saveCalendarTitleBtn");
 const deleteCalendarBtn = document.getElementById("deleteCalendarBtn");
 const todayHint = document.getElementById("todayHint");
@@ -47,6 +49,9 @@ const legendPanelDesc = document.getElementById("legendPanelDesc");
 const totalLabel = document.getElementById("totalLabel");
 const rangeLabel = document.getElementById("rangeLabel");
 const calendarBanner = document.getElementById("calendarBanner");
+
+const totalCount = document.getElementById("totalCount");
+const rangeCount = document.getElementById("rangeCount");
 
 const calendarContainer = document.getElementById("calendarContainer");
 
@@ -59,9 +64,9 @@ function fillStaticText() {
   if (brandTitle) brandTitle.textContent = "Challenge Hub";
   if (brandSubtitle) brandSubtitle.textContent = "Personal workspace";
 
-  if (calendarSectionTitle) calendarSectionTitle.textContent = "Calendars";
-  if (viewSectionTitle) viewSectionTitle.textContent = "View";
-  if (pageSectionTitle) pageSectionTitle.textContent = "Pages";
+  if (calendarSectionTitle) calendarSectionTitle.textContent = "CALENDARS";
+  if (viewSectionTitle) viewSectionTitle.textContent = "VIEW";
+  if (pageSectionTitle) pageSectionTitle.textContent = "PAGES";
 
   if (navCalendarBtn) navCalendarBtn.textContent = "Calendar";
   if (navSharedBtn) navSharedBtn.textContent = "Sharing";
@@ -74,11 +79,13 @@ function fillStaticText() {
 
   if (calendarPageTitle) calendarPageTitle.textContent = "Personal Challenge Calendar";
   if (calendarPageDesc) calendarPageDesc.textContent = "Basic running version";
+
   if (prevBtn) prevBtn.textContent = "Previous";
   if (todayBtn) todayBtn.textContent = "Today";
   if (nextBtn) nextBtn.textContent = "Next";
 
   if (calendarTitleLabel) calendarTitleLabel.textContent = "Calendar Title";
+  if (calendarOwnerHint) calendarOwnerHint.textContent = "";
   if (saveCalendarTitleBtn) saveCalendarTitleBtn.textContent = "Save Title";
   if (deleteCalendarBtn) deleteCalendarBtn.textContent = "Delete";
   if (todayHint) todayHint.textContent = "Today is outlined in black";
@@ -86,9 +93,16 @@ function fillStaticText() {
   if (legendPanelTitle) legendPanelTitle.textContent = "Legend";
   if (legendPanelHint) legendPanelHint.textContent = "Current calendar";
   if (legendPanelDesc) legendPanelDesc.textContent = "Labels and counts will go here.";
-  if (totalLabel) totalLabel.textContent = "Total recorded days";
   if (rangeLabel) rangeLabel.textContent = "Recorded this month";
+  if (totalLabel) totalLabel.textContent = "Total recorded days";
   if (calendarBanner) calendarBanner.textContent = "Core layout is working.";
+
+  if (calendarTitleInput && !calendarTitleInput.value) {
+    calendarTitleInput.value = "My Calendar";
+  }
+
+  if (totalCount) totalCount.textContent = "0";
+  if (rangeCount) rangeCount.textContent = "0";
 }
 
 function showGate() {
@@ -101,7 +115,86 @@ function showApp() {
   app.classList.remove("hidden");
 }
 
+function renderCurrentCalendar() {
+  if (calendarContainer) {
+    renderCalendar(calendarContainer, state);
+  }
+}
+
+function bindNavigationButtons() {
+  if (prevBtn) {
+    prevBtn.onclick = () => {
+      state.currentDate = new Date(
+        state.currentDate.getFullYear(),
+        state.currentDate.getMonth() - 1,
+        1
+      );
+      renderCurrentCalendar();
+    };
+  }
+
+  if (nextBtn) {
+    nextBtn.onclick = () => {
+      state.currentDate = new Date(
+        state.currentDate.getFullYear(),
+        state.currentDate.getMonth() + 1,
+        1
+      );
+      renderCurrentCalendar();
+    };
+  }
+
+  if (todayBtn) {
+    todayBtn.onclick = () => {
+      state.currentDate = new Date();
+      renderCurrentCalendar();
+    };
+  }
+}
+
+function bindSidebarButtons() {
+  if (monthViewBtn) {
+    monthViewBtn.onclick = () => {
+      monthViewBtn.classList.add("active");
+      if (yearViewBtn) yearViewBtn.classList.remove("active");
+      renderCurrentCalendar();
+    };
+  }
+
+  if (yearViewBtn) {
+    yearViewBtn.onclick = () => {
+      alert("Year View will be added next.");
+    };
+  }
+
+  if (createCalendarBtn) {
+    createCalendarBtn.onclick = () => {
+      const name = prompt("Enter new calendar name:");
+      if (name && calendarTitleInput) {
+        calendarTitleInput.value = name;
+      }
+    };
+  }
+
+  if (saveCalendarTitleBtn) {
+    saveCalendarTitleBtn.onclick = () => {
+      alert("Calendar title saved.");
+    };
+  }
+
+  if (deleteCalendarBtn) {
+    deleteCalendarBtn.onclick = () => {
+      const ok = confirm("Delete this calendar?");
+      if (ok && calendarTitleInput) {
+        calendarTitleInput.value = "";
+      }
+    };
+  }
+}
+
 fillStaticText();
+bindNavigationButtons();
+bindSidebarButtons();
 
 watchAuthState((user) => {
   state.currentUser = user;
@@ -111,11 +204,9 @@ watchAuthState((user) => {
     if (userEmail) userEmail.textContent = user.email || "";
     if (userAvatar) userAvatar.src = user.photoURL || "";
 
+    gateStatus.textContent = `Signed in as ${user.email || "user"}`;
     showApp();
-
-    if (calendarContainer) {
-      renderCalendar(calendarContainer, state);
-    }
+    renderCurrentCalendar();
   } else {
     gateStatus.textContent = "Not signed in";
     showGate();
@@ -126,7 +217,7 @@ loginBtn.addEventListener("click", async () => {
   try {
     await loginWithGoogle();
   } catch (err) {
-    gateStatus.textContent = err.code || err.message || "login failed";
+    gateStatus.textContent = `Firebase: ${err.message || err.code || "login failed"}`;
   }
 });
 
@@ -134,6 +225,6 @@ logoutBtn.addEventListener("click", async () => {
   try {
     await logoutUser();
   } catch (err) {
-    gateStatus.textContent = err.code || err.message || "logout failed";
+    gateStatus.textContent = `Firebase: ${err.message || err.code || "logout failed"}`;
   }
 });
