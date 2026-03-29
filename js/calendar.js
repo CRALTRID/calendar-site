@@ -1,3 +1,16 @@
+function getMonthKey(year, month, day) {
+  return `${year}-${month + 1}-${day}`;
+}
+
+function getColorByValue(value) {
+  const colors = [
+    "#ffffff", // 0 = none
+    "#fee2e2", // 1 = red
+    "#fef3c7"  // 2 = yellow
+  ];
+  return colors[value] || "#ffffff";
+}
+
 export function renderCalendar(container, state) {
   if (!container) return;
 
@@ -50,6 +63,10 @@ export function renderCalendar(container, state) {
       month === today.getMonth() &&
       d === today.getDate();
 
+    const key = getMonthKey(year, month, d);
+    const value = state.entries?.[key] || 0;
+    const bgColor = getColorByValue(value);
+
     html += `
       <div
         class="calendar-day"
@@ -58,9 +75,10 @@ export function renderCalendar(container, state) {
           min-height:100px;
           border:1px solid #e5e7eb;
           border-radius:14px;
-          background:#fff;
+          background:${bgColor};
           padding:10px;
           cursor:pointer;
+          transition:background .15s ease;
           ${isToday ? "outline:2px solid #111827; outline-offset:-2px;" : ""}
         "
       >
@@ -76,8 +94,44 @@ export function renderCalendar(container, state) {
   const dayEls = container.querySelectorAll(".calendar-day");
   dayEls.forEach((el) => {
     el.addEventListener("click", () => {
-      const day = el.dataset.day;
-      alert(`Clicked ${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+      const day = Number(el.dataset.day);
+      const key = getMonthKey(year, month, day);
+
+      if (!state.entries) state.entries = {};
+
+      const current = state.entries[key] || 0;
+      const next = (current + 1) % 3; // 0 -> 1 -> 2 -> 0
+
+      state.entries[key] = next;
+      el.style.background = getColorByValue(next);
+
+      updateStats(state);
     });
   });
+
+  updateStats(state);
+}
+
+function updateStats(state) {
+  const rangeCountEl = document.getElementById("rangeCount");
+  const totalCountEl = document.getElementById("totalCount");
+
+  const now = state.currentDate || new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const monthPrefix = `${year}-${month + 1}-`;
+
+  const allEntries = Object.entries(state.entries || {});
+  const activeEntries = allEntries.filter(([, value]) => value !== 0);
+
+  const monthEntries = activeEntries.filter(([key]) => key.startsWith(monthPrefix));
+
+  if (rangeCountEl) {
+    rangeCountEl.textContent = String(monthEntries.length);
+  }
+
+  if (totalCountEl) {
+    totalCountEl.textContent = String(activeEntries.length);
+  }
 }
