@@ -1,28 +1,36 @@
-const STORAGE_KEY = "challenge_entries_v1";
+import { saveUserData, loadUserData } from "./db.js";
 
-function loadEntries() {
+export const state = {
+  currentUser: null,
+  currentDate: new Date(),
+  currentView: "month", // "month" or "year"
+  entries: {}
+};
+
+// 🔄 从 Firebase 拉数据
+export async function syncFromCloud() {
+  if (!state.currentUser) return;
+
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
+    const data = await loadUserData(state.currentUser.uid);
+
+    if (data && data.entries) {
+      state.entries = data.entries;
+    }
+  } catch (err) {
+    console.error("Load failed:", err);
   }
 }
 
-function saveEntries(entries) {
+// ☁️ 保存到 Firebase
+export async function syncToCloud() {
+  if (!state.currentUser) return;
+
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {}
-}
-
-export const state = {
-  lang: "en",
-  currentUser: null,
-  currentDate: new Date(),
-  currentView: "month",
-  entries: loadEntries()
-};
-
-export function persistEntries() {
-  saveEntries(state.entries || {});
+    await saveUserData(state.currentUser.uid, {
+      entries: state.entries
+    });
+  } catch (err) {
+    console.error("Save failed:", err);
+  }
 }
