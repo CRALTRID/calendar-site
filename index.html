@@ -1,151 +1,1880 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Challenge Hub</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>个人挑战日历</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+      --shadow-strong: 0 14px 36px rgba(15, 23, 42, 0.1);
+      --accent: #111827;
+      --soft: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .top-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: #111827;
+      z-index: 3000;
+      transition: width 0.28s ease, opacity 0.25s ease;
+      opacity: 0;
+    }
+
+    .top-progress.show {
+      opacity: 1;
+    }
+
+    .fade-in {
+      animation: fadeInUp 0.28s ease;
+    }
+
+    .fade-out {
+      animation: fadeOutDown 0.22s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeOutDown {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+    }
+
+    .busy-btn {
+      position: relative;
+      pointer-events: none;
+      opacity: 0.88;
+    }
+
+    .busy-btn::after {
+      content: "";
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #fff;
+      border-radius: 999px;
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: -2px;
+      animation: spin 0.75s linear infinite;
+    }
+
+    button:not(.primary).busy-btn::after {
+      border: 2px solid rgba(17,24,39,0.25);
+      border-top-color: #111827;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .auth-gate {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.42);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 20px;
+    }
+
+    .auth-gate.hidden {
+      display: none;
+    }
+
+    .auth-modal {
+      width: 100%;
+      max-width: 430px;
+      background: #fff;
+      border-radius: 22px;
+      padding: 30px 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+      text-align: center;
+    }
+
+    .auth-modal h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    .auth-modal p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: #ffffff;
+      border-right: 1px solid var(--line);
+      padding: 18px 14px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px 18px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .brand-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: #111827;
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .brand-text p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .nav-section {
+      margin-bottom: 16px;
+    }
+
+    .nav-title {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 10px 10px 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .nav-item,
+    .subnav-item {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      border-radius: 12px;
+      padding: 10px 12px;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .nav-item:hover,
+    .subnav-item:hover {
+      background: #f8fafc;
+    }
+
+    .nav-item.active,
+    .subnav-item.active {
+      background: #111827;
+      color: white;
+    }
+
+    .subnav {
+      margin-top: 6px;
+      padding-left: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .subnav-item {
+      font-size: 13px;
+      padding: 8px 10px;
+    }
+
+    .sidebar-user {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--soft);
+    }
+
+    .user-card {
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      transition: transform 0.2s ease;
+    }
+
+    .avatar:hover {
+      transform: scale(1.06);
+    }
+
+    .user-info {
+      min-width: 0;
+    }
+
+    .user-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .user-email {
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .logout-wrap {
+      margin-top: 10px;
+    }
+
+    .content {
+      padding: 20px;
+      min-width: 0;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .title h1 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    button,
+    select,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    select,
+    input,
+    textarea {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button:hover,
+    select:hover {
+      opacity: 0.96;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(240px, 0.68fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .calendar-panel {
+      padding: 18px;
+      box-shadow: var(--shadow-strong);
+    }
+
+    .side-panel {
+      padding: 14px;
+      position: sticky;
+      top: 20px;
+      align-self: start;
+    }
+
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .panel-title h2,
+    .panel-title h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .month-title {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .weekday-row,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .weekday {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 0;
+    }
+
+    .day {
+      min-height: 108px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      overflow: hidden;
+    }
+
+    .day:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .day.other-month {
+      opacity: 0.35;
+      background: #f9fafb;
+    }
+
+    .day.today {
+      outline: 2px solid #111827;
+      outline-offset: -2px;
+    }
+
+    .date-number {
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .entry-label {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 28px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.82);
+      border-radius: 999px;
+      padding: 4px 7px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(6px);
+    }
+
+    .entry-note {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      font-size: 10px;
+      color: #374151;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: rgba(255, 255, 255, 0.65);
+      border-radius: 8px;
+      padding: 3px 6px;
+    }
+
+    .year-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .mini-month {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      background: #fff;
+      cursor: pointer;
+    }
+
+    .mini-month:hover {
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.05);
+    }
+
+    .mini-month-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .mini-weekdays,
+    .mini-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .mini-weekdays div {
+      text-align: center;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .mini-day {
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      border: 1px solid #f1f5f9;
+      background: #fff;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #334155;
+      user-select: none;
+    }
+
+    .mini-day.empty {
+      visibility: hidden;
+    }
+
+    .mini-day-number {
+      position: relative;
+      z-index: 1;
+      font-weight: 600;
+    }
+
+    .legend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .legend-item {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 8px;
+      background: #fafafa;
+    }
+
+    .legend-color {
+      width: 28px;
+      height: 28px;
+      border: none;
+      padding: 0;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .legend-main {
+      min-width: 0;
+    }
+
+    .legend-input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 12px;
+      background: #fff;
+      margin-bottom: 4px;
+    }
+
+    .legend-count {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fafafa;
+      padding: 12px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+
+    .banner {
+      margin-top: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .placeholder-card,
+    .profile-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .placeholder-card h2,
+    .profile-card h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .placeholder-card p,
+    .profile-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .profile-layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .profile-summary {
+      background: #fafafa;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .profile-summary .avatar-large {
+      width: 72px;
+      height: 72px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      margin-bottom: 12px;
+    }
+
+    .profile-summary .profile-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .profile-summary .profile-mail {
+      font-size: 13px;
+      color: var(--muted);
+      word-break: break-all;
+    }
+
+    .profile-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .field input {
+      width: 100%;
+    }
+
+    .profile-actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .profile-status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 560px;
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+    }
+
+    .selected-date {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .option {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 11px;
+      cursor: pointer;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      background: white;
+    }
+
+    .option:hover {
+      background: #f9fafb;
+    }
+
+    .swatch {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      flex: 0 0 26px;
+    }
+
+    .note-box {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      margin-top: 8px;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 1180px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .layout,
+      .profile-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        position: static;
+      }
+
+      .year-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .content {
+        padding: 14px;
+      }
+
+      .title h1 {
+        font-size: 24px;
+      }
+
+      .month-title {
+        font-size: 20px;
+      }
+
+      .day {
+        min-height: 78px;
+        padding: 8px;
+      }
+
+      .entry-label {
+        font-size: 10px;
+        bottom: 24px;
+      }
+
+      .entry-note {
+        font-size: 9px;
+      }
+
+      .option-grid,
+      .profile-form,
+      .year-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
   <div id="topProgress" class="top-progress"></div>
 
   <div id="authGate" class="auth-gate">
     <div class="auth-modal">
-      <h1 id="gateTitle"></h1>
-      <p id="gateDesc"></p>
-      <button id="loginBtn" class="primary"></button>
-      <div id="gateStatus" class="status-text"></div>
+      <h2>欢迎使用个人挑战日历</h2>
+      <p>请先登录后继续。登录后会自动读取你自己账号下的数据。</p>
+      <button id="gateGoogleLoginBtn" class="primary">使用 Google 登录</button>
+      <div id="authGateStatus" class="small" style="margin-top:10px;">正在检查登录状态…</div>
     </div>
   </div>
 
-  <div id="app" class="app hidden">
+  <div id="appShell" class="app-shell" style="display:none;">
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-badge">C</div>
-        <div>
-          <div class="brand-title" id="brandTitle"></div>
-          <div class="brand-subtitle" id="brandSubtitle"></div>
+        <div class="brand-text">
+          <h1>Challenge Hub</h1>
+          <p>个人记录空间</p>
         </div>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title" id="calendarSectionTitle"></div>
-        <div id="ownedCalendarsList" class="calendar-list"></div>
-        <button id="createCalendarBtn" class="primary full-btn"></button>
+      <div class="nav-section">
+        <div class="nav-title">Calendar</div>
+        <button class="nav-item active" data-page="calendarPage">My Calendar</button>
+        <div class="subnav">
+          <button class="subnav-item active" data-subview="month">Month View</button>
+          <button class="subnav-item" data-subview="year">Year View</button>
+        </div>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title" id="viewSectionTitle"></div>
-        <button id="monthViewBtn" class="sidebar-btn active"></button>
-        <button id="yearViewBtn" class="sidebar-btn"></button>
+      <div class="nav-section">
+        <div class="nav-title">Sharing</div>
+        <button class="nav-item" data-page="sharedPage">Shared With Me</button>
       </div>
 
-      <div class="sidebar-section">
-        <div class="sidebar-title" id="pageSectionTitle"></div>
-        <button class="sidebar-btn page-btn active" data-page="calendarPage" id="navCalendarBtn"></button>
-        <button class="sidebar-btn page-btn" data-page="sharedPage" id="navSharedBtn"></button>
-        <button class="sidebar-btn page-btn" data-page="profilePage" id="navProfileBtn"></button>
-        <button class="sidebar-btn page-btn" data-page="settingsPage" id="navSettingsBtn"></button>
+      <div class="nav-section">
+        <div class="nav-title">Account</div>
+        <button class="nav-item" data-page="profilePage">Profile</button>
+        <button class="nav-item" data-page="settingsPage">Settings</button>
       </div>
 
       <div class="sidebar-user">
-        <div class="user-card">
-          <img id="userAvatar" class="avatar" alt="avatar" />
+        <div id="userCard" class="user-card">
+          <img id="userAvatar" class="avatar" src="" alt="avatar" />
           <div class="user-info">
             <div id="userName" class="user-name"></div>
             <div id="userEmail" class="user-email"></div>
           </div>
         </div>
-        <button id="logoutBtn" class="danger full-btn"></button>
+
+        <div class="logout-wrap">
+          <button id="logoutBtn">退出登录</button>
+        </div>
       </div>
     </aside>
 
-    <main class="main">
+    <main class="content">
       <section id="calendarPage" class="page active">
         <div class="topbar">
-          <div>
-            <h2 id="calendarPageTitle"></h2>
-            <p id="calendarPageDesc"></p>
+          <div class="title">
+            <h1>个人挑战日历</h1>
+            <p>Google 登录后，每个用户只看到并修改自己的数据。支持月视图、年视图、颜色记录和备注。</p>
           </div>
-          <div class="toolbar">
-            <button id="prevBtn"></button>
-            <button id="todayBtn"></button>
-            <button id="nextBtn"></button>
-          </div>
-        </div>
 
-        <div class="panel title-panel">
-          <div class="row-between">
-            <div>
-              <div class="panel-title" id="calendarTitleLabel"></div>
-              <div class="small" id="calendarOwnerHint"></div>
-            </div>
-          </div>
-          <div class="row-wrap">
-            <input id="calendarTitleInput" type="text" />
-            <button id="saveCalendarTitleBtn" class="primary"></button>
-            <button id="deleteCalendarBtn" class="danger"></button>
+          <div class="toolbar">
+            <button id="monthViewBtn" class="primary">月视图</button>
+            <button id="yearViewBtn">年视图</button>
+            <button id="prevBtn">上一个</button>
+            <button id="todayBtn">今天</button>
+            <button id="nextBtn">下一个</button>
+            <select id="yearSelect"></select>
+            <select id="monthSelect"></select>
           </div>
         </div>
 
         <div class="layout">
-          <div class="panel">
-            <div class="row-between mb12">
-              <h3 id="mainTitle"></h3>
-              <div class="small" id="todayHint"></div>
+          <div class="panel calendar-panel">
+            <div class="panel-title">
+              <div class="month-title" id="mainTitle"></div>
+              <div class="small">今天会显示黑色边框</div>
             </div>
 
-            <div id="calendarContainer"></div>
+            <div id="monthView">
+              <div class="weekday-row">
+                <div class="weekday">日</div>
+                <div class="weekday">一</div>
+                <div class="weekday">二</div>
+                <div class="weekday">三</div>
+                <div class="weekday">四</div>
+                <div class="weekday">五</div>
+                <div class="weekday">六</div>
+              </div>
+              <div class="calendar-grid" id="calendarGrid"></div>
+            </div>
+
+            <div id="yearView" style="display:none;">
+              <div class="year-grid" id="yearGrid"></div>
+            </div>
           </div>
 
           <div class="panel side-panel">
-            <div class="row-between mb12">
-              <h3 id="legendPanelTitle"></h3>
-              <div class="small" id="legendPanelHint"></div>
+            <div class="panel-title">
+              <h2>记录类型</h2>
+              <span class="small">个人数据模式</span>
             </div>
 
-            <div id="legendPanelDesc" class="small mb12"></div>
-            <div id="legendList" class="legend-list"></div>
+            <div class="small">当前是个人账号数据模式。下一步可以继续加共享邀请功能。</div>
+
+            <div class="legend-list" id="legendList"></div>
 
             <div class="stats">
               <div class="stat">
                 <strong id="rangeCount">0</strong>
-                <div id="rangeLabel" class="small"></div>
+                <span class="small" id="rangeLabel">当前范围已记录</span>
               </div>
               <div class="stat">
                 <strong id="totalCount">0</strong>
-                <div id="totalLabel" class="small"></div>
+                <span class="small">总记录天数</span>
               </div>
             </div>
 
-            <div id="calendarBanner" class="banner"></div>
+            <div class="banner">
+              已支持登录动画、顶部进度条、头像、名字、邮箱显示。
+            </div>
           </div>
         </div>
       </section>
 
       <section id="sharedPage" class="page">
-        <div class="panel">
-          <h2 id="sharedPageTitle">Sharing</h2>
-          <p id="sharedPageDesc">Sharing page placeholder.</p>
+        <div class="placeholder-card">
+          <h2>Shared With Me</h2>
+          <p>这里是共享页面占位。下一步可以在这里加：</p>
+          <p>1. 通过邮箱邀请别人共享日历</p>
+          <p>2. 查看别人分享给你的日历</p>
+          <p>3. 设置 owner / editor / viewer 权限</p>
         </div>
       </section>
 
       <section id="profilePage" class="page">
-        <div class="panel">
-          <h2 id="profilePageTitle">Profile</h2>
-          <p id="profilePageDesc">Profile page placeholder.</p>
+        <div class="profile-card">
+          <h2>Profile</h2>
+          <p>这里保存你自己的资料信息。当前版本支持 name、phone number、birthday。</p>
+
+          <div class="profile-layout">
+            <div class="profile-summary">
+              <img id="profileAvatar" class="avatar-large" src="" alt="avatar" />
+              <div id="profileDisplayName" class="profile-name">未登录</div>
+              <div id="profileDisplayEmail" class="profile-mail"></div>
+            </div>
+
+            <div>
+              <div class="profile-form">
+                <div class="field full">
+                  <label>Name</label>
+                  <input id="profileNameInput" type="text" placeholder="Your name" />
+                </div>
+
+                <div class="field">
+                  <label>Email</label>
+                  <input id="profileEmailInput" type="email" placeholder="Email" disabled />
+                </div>
+
+                <div class="field">
+                  <label>Phone Number</label>
+                  <input id="profilePhoneInput" type="text" placeholder="Phone number" />
+                </div>
+
+                <div class="field">
+                  <label>Birthday</label>
+                  <input id="profileBirthdayInput" type="date" />
+                </div>
+              </div>
+
+              <div class="profile-actions">
+                <button id="saveProfileBtn" class="primary">保存 Profile</button>
+              </div>
+
+              <div id="profileStatus" class="profile-status">还没有修改。</div>
+            </div>
+          </div>
         </div>
       </section>
 
       <section id="settingsPage" class="page">
-        <div class="panel">
-          <h2 id="settingsPageTitle">Settings</h2>
-          <p id="settingsPageDesc">Settings page placeholder.</p>
+        <div class="placeholder-card">
+          <h2>Settings</h2>
+          <p>这里先作为二级功能占位。以后可以继续加：</p>
+          <p>1. 主题切换</p>
+          <p>2. 默认视图设置</p>
+          <p>3. 共享权限设置</p>
+          <p>4. 导出和备份</p>
         </div>
       </section>
     </main>
   </div>
 
-  <script type="module" src="./js/main.js"></script>
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <div class="selected-date" id="selectedDateText"></div>
+      <div class="small">点击颜色来设置当天记录，再输入备注。</div>
+
+      <div class="option-grid" id="optionGrid"></div>
+
+      <div class="small" style="margin-top:4px;">备注</div>
+      <textarea id="noteInput" class="note-box" placeholder="写一点备注，例如：今天完成得不错 / 只做了一半 / 和朋友一起完成"></textarea>
+
+      <div class="modal-actions">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="saveNoteBtn" class="primary">保存备注</button>
+          <button id="clearDayBtn">清空这一天</button>
+        </div>
+        <button id="closeModalBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+    import {
+      getAuth,
+      GoogleAuthProvider,
+      signInWithPopup,
+      signOut,
+      onAuthStateChanged,
+      setPersistence,
+      browserLocalPersistence
+    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBhwkDkx_xCU51bd7owNF74FunoUec2KrY",
+      authDomain: "hfsex-a6114.firebaseapp.com",
+      projectId: "hfsex-a6114",
+      storageBucket: "hfsex-a6114.firebasestorage.app",
+      messagingSenderId: "35309193656",
+      appId: "1:35309193656:web:32871f89f8729de715e74d",
+      measurementId: "G-5EK9Q00F21"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    let currentUser = null;
+    let unsubscribeCalendar = null;
+    let unsubscribeProfile = null;
+    let calendarDocRef = null;
+    let profileDocRef = null;
+
+    const DEFAULT_STATE = {
+      legends: [
+        { id: "red", color: "#f87171", label: "挑战 A" },
+        { id: "orange", color: "#fb923c", label: "挑战 B" },
+        { id: "yellow", color: "#facc15", label: "挑战 C" },
+        { id: "green", color: "#4ade80", label: "挑战 D" },
+        { id: "blue", color: "#60a5fa", label: "挑战 E" },
+        { id: "purple", color: "#c084fc", label: "挑战 F" }
+      ],
+      entries: {}
+    };
+
+    const DEFAULT_PROFILE = {
+      name: "",
+      phoneNumber: "",
+      birthday: ""
+    };
+
+    let state = structuredClone(DEFAULT_STATE);
+    let profileState = structuredClone(DEFAULT_PROFILE);
+    let currentDate = new Date();
+    let currentView = "month";
+    let selectedDateKey = null;
+    let currentPage = "calendarPage";
+
+    const topProgress = document.getElementById("topProgress");
+    const authGate = document.getElementById("authGate");
+    const appShell = document.getElementById("appShell");
+    const authGateStatus = document.getElementById("authGateStatus");
+    const gateGoogleLoginBtn = document.getElementById("gateGoogleLoginBtn");
+
+    const mainTitle = document.getElementById("mainTitle");
+    const calendarGrid = document.getElementById("calendarGrid");
+    const yearGrid = document.getElementById("yearGrid");
+    const legendList = document.getElementById("legendList");
+    const rangeCount = document.getElementById("rangeCount");
+    const totalCount = document.getElementById("totalCount");
+    const rangeLabel = document.getElementById("rangeLabel");
+    const yearSelect = document.getElementById("yearSelect");
+    const monthSelect = document.getElementById("monthSelect");
+    const monthView = document.getElementById("monthView");
+    const yearView = document.getElementById("yearView");
+    const modal = document.getElementById("modal");
+    const selectedDateText = document.getElementById("selectedDateText");
+    const optionGrid = document.getElementById("optionGrid");
+    const noteInput = document.getElementById("noteInput");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    const profileNameInput = document.getElementById("profileNameInput");
+    const profileEmailInput = document.getElementById("profileEmailInput");
+    const profilePhoneInput = document.getElementById("profilePhoneInput");
+    const profileBirthdayInput = document.getElementById("profileBirthdayInput");
+    const profileStatus = document.getElementById("profileStatus");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+
+    const navItems = document.querySelectorAll(".nav-item");
+    const subnavItems = document.querySelectorAll(".subnav-item");
+
+    function startProgress() {
+      topProgress.classList.add("show");
+      topProgress.style.width = "18%";
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          topProgress.style.width = "62%";
+        }, 120);
+
+        setTimeout(() => {
+          topProgress.style.width = "82%";
+        }, 360);
+      });
+    }
+
+    function finishProgress() {
+      topProgress.style.width = "100%";
+      setTimeout(() => {
+        topProgress.classList.remove("show");
+        topProgress.style.width = "0%";
+      }, 260);
+    }
+
+    function setButtonBusy(button, busy, busyText, normalText) {
+      if (!button) return;
+      if (busy) {
+        button.dataset.originalText = normalText ?? button.textContent;
+        button.textContent = busyText;
+        button.classList.add("busy-btn");
+        button.disabled = true;
+      } else {
+        button.textContent = normalText ?? button.dataset.originalText ?? button.textContent;
+        button.classList.remove("busy-btn");
+        button.disabled = false;
+      }
+    }
+
+    function animateGateClose() {
+      authGate.classList.add("fade-out");
+      setTimeout(() => {
+        authGate.classList.add("hidden");
+        authGate.classList.remove("fade-out");
+        appShell.style.display = "grid";
+        appShell.classList.add("fade-in");
+        setTimeout(() => appShell.classList.remove("fade-in"), 300);
+      }, 220);
+    }
+
+    function animateGateOpen() {
+      appShell.style.display = "none";
+      authGate.classList.remove("hidden");
+      authGate.classList.add("fade-in");
+      setTimeout(() => authGate.classList.remove("fade-in"), 300);
+    }
+
+    function switchPage(pageId) {
+      currentPage = pageId;
+      document.querySelectorAll(".page").forEach((page) => {
+        page.classList.toggle("active", page.id === pageId);
+      });
+
+      navItems.forEach((item) => {
+        item.classList.toggle("active", item.dataset.page === pageId);
+      });
+    }
+
+    function setSubview(view) {
+      currentView = view;
+      subnavItems.forEach((item) => {
+        item.classList.toggle("active", item.dataset.subview === view);
+      });
+      document.getElementById("monthViewBtn").classList.toggle("primary", view === "month");
+      document.getElementById("yearViewBtn").classList.toggle("primary", view === "year");
+      render();
+      switchPage("calendarPage");
+    }
+
+    navItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        switchPage(item.dataset.page);
+      });
+    });
+
+    subnavItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        setSubview(item.dataset.subview);
+      });
+    });
+
+    document.getElementById("monthViewBtn").addEventListener("click", () => setSubview("month"));
+    document.getElementById("yearViewBtn").addEventListener("click", () => setSubview("year"));
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      if (currentView === "month") {
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      } else {
+        currentDate = new Date(currentDate.getFullYear() - 1, 0, 1);
+      }
+      render();
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      if (currentView === "month") {
+        currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+      } else {
+        currentDate = new Date(currentDate.getFullYear() + 1, 0, 1);
+      }
+      render();
+    });
+
+    document.getElementById("todayBtn").addEventListener("click", () => {
+      currentDate = new Date();
+      currentView = "month";
+      render();
+    });
+
+    yearSelect.addEventListener("change", () => {
+      currentDate = new Date(Number(yearSelect.value), currentDate.getMonth(), 1);
+      render();
+    });
+
+    monthSelect.addEventListener("change", () => {
+      currentDate = new Date(currentDate.getFullYear(), Number(monthSelect.value), 1);
+      render();
+    });
+
+    document.getElementById("closeModalBtn").addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    gateGoogleLoginBtn.addEventListener("click", async () => {
+      try {
+        authGateStatus.textContent = "正在打开 Google 登录…";
+        setButtonBusy(gateGoogleLoginBtn, true, "正在登录…", "使用 Google 登录");
+        startProgress();
+        await setPersistence(auth, browserLocalPersistence);
+        await signInWithPopup(auth, provider);
+      } catch (err) {
+        console.error("Google 登录失败:", err);
+        authGateStatus.textContent = "登录失败：" + (err.code || err.message || "未知错误");
+        finishProgress();
+        setButtonBusy(gateGoogleLoginBtn, false, "正在登录…", "使用 Google 登录");
+      }
+    });
+
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        setButtonBusy(logoutBtn, true, "正在退出…", "退出登录");
+        startProgress();
+        await signOut(auth);
+      } catch (err) {
+        console.error("退出失败:", err);
+        finishProgress();
+        setButtonBusy(logoutBtn, false, "正在退出…", "退出登录");
+      }
+    });
+
+    saveProfileBtn.addEventListener("click", async () => {
+      if (!currentUser || !profileDocRef) return;
+
+      try {
+        setButtonBusy(saveProfileBtn, true, "正在保存…", "保存 Profile");
+        profileState = {
+          name: profileNameInput.value.trim(),
+          phoneNumber: profilePhoneInput.value.trim(),
+          birthday: profileBirthdayInput.value || ""
+        };
+        await setDoc(profileDocRef, profileState, { merge: true });
+        profileStatus.textContent = "Profile 已保存。";
+      } catch (err) {
+        console.error("save profile failed:", err);
+        profileStatus.textContent = "保存失败。";
+      } finally {
+        setButtonBusy(saveProfileBtn, false, "正在保存…", "保存 Profile");
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user || null;
+      updateAuthUI();
+
+      if (unsubscribeCalendar) {
+        unsubscribeCalendar();
+        unsubscribeCalendar = null;
+      }
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = null;
+      }
+
+      if (currentUser) {
+        calendarDocRef = doc(db, "userCalendars", currentUser.uid);
+        profileDocRef = doc(db, "users", currentUser.uid);
+
+        await ensureCalendarExists();
+        await ensureProfileExists();
+
+        startCalendarSync();
+        startProfileSync();
+
+        animateGateClose();
+        finishProgress();
+        setButtonBusy(gateGoogleLoginBtn, false, "正在登录…", "使用 Google 登录");
+        setButtonBusy(logoutBtn, false, "正在退出…", "退出登录");
+      } else {
+        calendarDocRef = null;
+        profileDocRef = null;
+        state = structuredClone(DEFAULT_STATE);
+        profileState = structuredClone(DEFAULT_PROFILE);
+        render();
+        renderProfile();
+
+        animateGateOpen();
+        authGateStatus.textContent = "请先登录后继续。";
+        finishProgress();
+        setButtonBusy(gateGoogleLoginBtn, false, "正在登录…", "使用 Google 登录");
+        setButtonBusy(logoutBtn, false, "正在退出…", "退出登录");
+      }
+    });
+
+    function updateAuthUI() {
+      const userCard = document.getElementById("userCard");
+      const avatar = document.getElementById("userAvatar");
+      const name = document.getElementById("userName");
+      const email = document.getElementById("userEmail");
+
+      const profileAvatar = document.getElementById("profileAvatar");
+      const profileDisplayName = document.getElementById("profileDisplayName");
+      const profileDisplayEmail = document.getElementById("profileDisplayEmail");
+
+      if (currentUser) {
+        userCard.style.display = "flex";
+        avatar.src = currentUser.photoURL || "";
+        name.textContent = currentUser.displayName || "未命名用户";
+        email.textContent = currentUser.email || "";
+
+        profileAvatar.src = currentUser.photoURL || "";
+        profileDisplayName.textContent = currentUser.displayName || "未命名用户";
+        profileDisplayEmail.textContent = currentUser.email || "";
+        profileEmailInput.value = currentUser.email || "";
+      } else {
+        userCard.style.display = "none";
+        profileAvatar.src = "";
+        profileDisplayName.textContent = "未登录";
+        profileDisplayEmail.textContent = "";
+        profileEmailInput.value = "";
+      }
+    }
+
+    async function ensureCalendarExists() {
+      try {
+        const snap = await getDoc(calendarDocRef);
+        if (!snap.exists()) {
+          await setDoc(calendarDocRef, DEFAULT_STATE);
+        }
+      } catch (err) {
+        console.error("calendar init error:", err);
+      }
+    }
+
+    async function ensureProfileExists() {
+      try {
+        const snap = await getDoc(profileDocRef);
+        if (!snap.exists()) {
+          await setDoc(profileDocRef, DEFAULT_PROFILE);
+        }
+      } catch (err) {
+        console.error("profile init error:", err);
+      }
+    }
+
+    function startCalendarSync() {
+      unsubscribeCalendar = onSnapshot(
+        calendarDocRef,
+        (snap) => {
+          if (snap.exists()) {
+            state = snap.data();
+            if (!state.legends) state.legends = structuredClone(DEFAULT_STATE.legends);
+            if (!state.entries) state.entries = {};
+            render();
+          }
+        },
+        (err) => console.error("calendar snapshot failed:", err)
+      );
+    }
+
+    function startProfileSync() {
+      unsubscribeProfile = onSnapshot(
+        profileDocRef,
+        (snap) => {
+          if (snap.exists()) {
+            profileState = { ...DEFAULT_PROFILE, ...snap.data() };
+            renderProfile();
+          }
+        },
+        (err) => console.error("profile snapshot failed:", err)
+      );
+    }
+
+    function renderProfile() {
+      profileNameInput.value = profileState.name || currentUser?.displayName || "";
+      profilePhoneInput.value = profileState.phoneNumber || "";
+      profileBirthdayInput.value = profileState.birthday || "";
+    }
+
+    async function saveCalendarState() {
+      if (!calendarDocRef) return;
+      try {
+        await setDoc(calendarDocRef, state);
+      } catch (err) {
+        console.error("save calendar failed:", err);
+        alert("保存失败，请检查 Firebase 配置和 Rules。");
+      }
+    }
+
+    document.getElementById("saveNoteBtn").addEventListener("click", async () => {
+      if (!currentUser) {
+        alert("请先登录后再修改");
+        return;
+      }
+      if (!selectedDateKey) return;
+
+      if (!state.entries[selectedDateKey]) {
+        state.entries[selectedDateKey] = { legendId: null, note: noteInput.value.trim() };
+      } else {
+        state.entries[selectedDateKey].note = noteInput.value.trim();
+      }
+
+      await saveCalendarState();
+      closeModal();
+    });
+
+    document.getElementById("clearDayBtn").addEventListener("click", async () => {
+      if (!currentUser) {
+        alert("请先登录后再修改");
+        return;
+      }
+      if (!selectedDateKey) return;
+
+      delete state.entries[selectedDateKey];
+      await saveCalendarState();
+      closeModal();
+    });
+
+    function getMonthPrefix(year, month) {
+      return `${year}-${String(month + 1).padStart(2, "0")}-`;
+    }
+
+    function getDateKey(date) {
+      return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+      ].join("-");
+    }
+
+    function formatDateKey(dateKey) {
+      const [y, m, d] = dateKey.split("-");
+      return `${y}年${Number(m)}月${Number(d)}日`;
+    }
+
+    function getEntry(dateKey) {
+      return state.entries[dateKey] || null;
+    }
+
+    function getLegendById(id) {
+      return state.legends.find((l) => l.id === id) || null;
+    }
+
+    function buildSelects() {
+      const baseYear = new Date().getFullYear();
+      yearSelect.innerHTML = "";
+      for (let y = baseYear - 5; y <= baseYear + 5; y++) {
+        const op = document.createElement("option");
+        op.value = y;
+        op.textContent = `${y}年`;
+        if (y === currentDate.getFullYear()) op.selected = true;
+        yearSelect.appendChild(op);
+      }
+
+      monthSelect.innerHTML = "";
+      for (let m = 0; m < 12; m++) {
+        const op = document.createElement("option");
+        op.value = m;
+        op.textContent = `${m + 1}月`;
+        if (m === currentDate.getMonth()) op.selected = true;
+        monthSelect.appendChild(op);
+      }
+    }
+
+    function openModal(dateKey) {
+      selectedDateKey = dateKey;
+      selectedDateText.textContent = formatDateKey(dateKey);
+
+      const currentEntry = getEntry(dateKey);
+      noteInput.value = currentEntry?.note || "";
+
+      optionGrid.innerHTML = "";
+
+      state.legends.forEach((legend) => {
+        const item = document.createElement("div");
+        item.className = "option";
+        item.innerHTML = `
+          <div class="swatch" style="background:${legend.color}"></div>
+          <div>
+            <div style="font-weight:700;">${escapeHtml(legend.label)}</div>
+            <div class="small">总共 ${getLegendTotalCount(legend.id)} 次</div>
+          </div>
+        `;
+
+        item.addEventListener("click", async () => {
+          if (!currentUser) {
+            alert("请先登录后再修改");
+            return;
+          }
+          const oldNote = state.entries[dateKey]?.note || "";
+          state.entries[dateKey] = {
+            legendId: legend.id,
+            note: oldNote
+          };
+          await saveCalendarState();
+          noteInput.value = oldNote;
+        });
+
+        optionGrid.appendChild(item);
+      });
+
+      modal.classList.add("show");
+    }
+
+    function closeModal() {
+      modal.classList.remove("show");
+      selectedDateKey = null;
+    }
+
+    function getLegendTotalCount(legendId) {
+      return Object.values(state.entries).filter((entry) => entry?.legendId === legendId).length;
+    }
+
+    function getLegendRangeCount(legendId) {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      if (currentView === "month") {
+        const prefix = getMonthPrefix(year, month);
+        return Object.entries(state.entries).filter(([key, entry]) => key.startsWith(prefix) && entry?.legendId === legendId).length;
+      }
+
+      const yearPrefix = `${year}-`;
+      return Object.entries(state.entries).filter(([key, entry]) => key.startsWith(yearPrefix) && entry?.legendId === legendId).length;
+    }
+
+    function renderLegendEditor() {
+      legendList.innerHTML = "";
+
+      state.legends.forEach((legend) => {
+        const row = document.createElement("div");
+        row.className = "legend-item";
+
+        const color = document.createElement("input");
+        color.type = "color";
+        color.className = "legend-color";
+        color.value = legend.color;
+        color.disabled = !currentUser;
+
+        const main = document.createElement("div");
+        main.className = "legend-main";
+
+        const input = document.createElement("input");
+        input.className = "legend-input";
+        input.value = legend.label;
+        input.disabled = !currentUser;
+
+        const count = document.createElement("div");
+        count.className = "legend-count";
+        count.textContent = `当前 ${getLegendRangeCount(legend.id)} 次 / 总共 ${getLegendTotalCount(legend.id)} 次`;
+
+        color.addEventListener("input", async () => {
+          if (!currentUser) return;
+          legend.color = color.value;
+          await saveCalendarState();
+        });
+
+        input.addEventListener("change", async () => {
+          if (!currentUser) return;
+          legend.label = input.value.trim() || "未命名";
+          await saveCalendarState();
+        });
+
+        main.appendChild(input);
+        main.appendChild(count);
+        row.appendChild(color);
+        row.appendChild(main);
+        legendList.appendChild(row);
+      });
+    }
+
+    function renderMonthView() {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      mainTitle.textContent = `${year}年 ${month + 1}月`;
+      calendarGrid.innerHTML = "";
+
+      const firstDay = new Date(year, month, 1);
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+      const todayKey = getDateKey(new Date());
+
+      for (let i = 0; i < 42; i++) {
+        let dayNum;
+        let cellDate;
+        let otherMonth = false;
+
+        if (i < startWeekday) {
+          dayNum = daysInPrevMonth - startWeekday + i + 1;
+          cellDate = new Date(year, month - 1, dayNum);
+          otherMonth = true;
+        } else if (i >= startWeekday + daysInMonth) {
+          dayNum = i - (startWeekday + daysInMonth) + 1;
+          cellDate = new Date(year, month + 1, dayNum);
+          otherMonth = true;
+        } else {
+          dayNum = i - startWeekday + 1;
+          cellDate = new Date(year, month, dayNum);
+        }
+
+        const dateKey = getDateKey(cellDate);
+        const entry = getEntry(dateKey);
+        const legend = entry?.legendId ? getLegendById(entry.legendId) : null;
+
+        const day = document.createElement("div");
+        day.className = "day";
+        if (otherMonth) day.classList.add("other-month");
+        if (dateKey === todayKey) day.classList.add("today");
+        if (legend) day.style.background = legend.color;
+
+        day.innerHTML = `<div class="date-number">${dayNum}</div>`;
+
+        if (legend) {
+          const label = document.createElement("div");
+          label.className = "entry-label";
+          label.textContent = legend.label;
+          day.appendChild(label);
+        }
+
+        if (entry?.note) {
+          const note = document.createElement("div");
+          note.className = "entry-note";
+          note.textContent = entry.note;
+          day.appendChild(note);
+        }
+
+        day.addEventListener("click", () => openModal(dateKey));
+        calendarGrid.appendChild(day);
+      }
+    }
+
+    function renderMiniMonth(year, month) {
+      const box = document.createElement("div");
+      box.className = "mini-month";
+
+      const title = document.createElement("div");
+      title.className = "mini-month-title";
+      title.textContent = `${month + 1}月`;
+      box.appendChild(title);
+
+      const weekdays = document.createElement("div");
+      weekdays.className = "mini-weekdays";
+      ["日", "一", "二", "三", "四", "五", "六"].forEach((d) => {
+        const el = document.createElement("div");
+        el.textContent = d;
+        weekdays.appendChild(el);
+      });
+      box.appendChild(weekdays);
+
+      const days = document.createElement("div");
+      days.className = "mini-days";
+
+      const firstDay = new Date(year, month, 1);
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      for (let i = 0; i < startWeekday; i++) {
+        const empty = document.createElement("div");
+        empty.className = "mini-day empty";
+        days.appendChild(empty);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const date = new Date(year, month, d);
+        const dateKey = getDateKey(date);
+        const entry = getEntry(dateKey);
+        const legend = entry?.legendId ? getLegendById(entry.legendId) : null;
+
+        const cell = document.createElement("div");
+        cell.className = "mini-day";
+        if (legend) cell.style.background = legend.color;
+
+        const number = document.createElement("div");
+        number.className = "mini-day-number";
+        number.textContent = d;
+        cell.appendChild(number);
+
+        cell.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openModal(dateKey);
+        });
+
+        days.appendChild(cell);
+      }
+
+      box.appendChild(days);
+
+      box.addEventListener("click", () => {
+        currentDate = new Date(year, month, 1);
+        setSubview("month");
+      });
+
+      return box;
+    }
+
+    function renderYearView() {
+      const year = currentDate.getFullYear();
+      mainTitle.textContent = `${year}年 全年总览`;
+      yearGrid.innerHTML = "";
+      for (let m = 0; m < 12; m++) {
+        yearGrid.appendChild(renderMiniMonth(year, m));
+      }
+    }
+
+    function renderStats() {
+      const total = Object.keys(state.entries).length;
+      totalCount.textContent = total;
+
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      if (currentView === "month") {
+        const prefix = getMonthPrefix(year, month);
+        const count = Object.keys(state.entries).filter((k) => k.startsWith(prefix)).length;
+        rangeCount.textContent = count;
+        rangeLabel.textContent = "本月已记录";
+      } else {
+        const yearPrefix = `${year}-`;
+        const count = Object.keys(state.entries).filter((k) => k.startsWith(yearPrefix)).length;
+        rangeCount.textContent = count;
+        rangeLabel.textContent = "本年已记录";
+      }
+    }
+
+    function renderViewToggle() {
+      document.getElementById("monthViewBtn").classList.toggle("primary", currentView === "month");
+      document.getElementById("yearViewBtn").classList.toggle("primary", currentView === "year");
+
+      monthView.style.display = currentView === "month" ? "block" : "none";
+      yearView.style.display = currentView === "year" ? "block" : "none";
+      monthSelect.style.display = currentView === "month" ? "inline-block" : "none";
+    }
+
+    function render() {
+      if (!state || typeof state !== "object") {
+        state = structuredClone(DEFAULT_STATE);
+      }
+      if (!state.legends) state.legends = structuredClone(DEFAULT_STATE.legends);
+      if (!state.entries) state.entries = {};
+
+      buildSelects();
+      renderViewToggle();
+      renderLegendEditor();
+
+      if (currentView === "month") {
+        renderMonthView();
+      } else {
+        renderYearView();
+      }
+
+      renderStats();
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    switchPage("calendarPage");
+    setSubview("month");
+    render();
+    renderProfile();
+  </script>
 </body>
 </html>
