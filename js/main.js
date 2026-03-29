@@ -24,33 +24,9 @@ const nextBtn = $("nextBtn");
 const monthViewBtn = $("monthViewBtn");
 const yearViewBtn = $("yearViewBtn");
 
-const shareBtn = $("shareBtn"); // 可选按钮
+const shareBtn = $("shareBtn");
 
-// ========= UI 初始化 =========
-function fillUI() {
-  $("gateTitle") && ($("gateTitle").textContent = "Challenge Hub");
-  $("gateDesc") && ($("gateDesc").textContent = "Please sign in to continue.");
-
-  loginBtn && (loginBtn.textContent = "Google Login");
-  logoutBtn && (logoutBtn.textContent = "Logout");
-
-  $("calendarPageTitle") && ($("calendarPageTitle").textContent = "Personal Challenge Calendar");
-  $("calendarPageDesc") && ($("calendarPageDesc").textContent = "Click a day to mark it.");
-
-  prevBtn && (prevBtn.textContent = "Previous");
-  todayBtn && (todayBtn.textContent = "Today");
-  nextBtn && (nextBtn.textContent = "Next");
-
-  $("todayHint") && ($("todayHint").textContent = "Today is outlined in black");
-
-  $("legendPanelTitle") && ($("legendPanelTitle").textContent = "Legend");
-  $("legendPanelDesc") && ($("legendPanelDesc").textContent = "Click day to cycle white/red/yellow");
-
-  $("rangeLabel") && ($("rangeLabel").textContent = "This month");
-  $("totalLabel") && ($("totalLabel").textContent = "Total");
-}
-
-// ========= 页面切换 =========
+// ========= UI =========
 function showGate() {
   authGate?.classList.remove("hidden");
   app?.classList.add("hidden");
@@ -61,12 +37,6 @@ function showApp() {
   app?.classList.remove("hidden");
 }
 
-// ========= 渲染 =========
-function render() {
-  renderCalendar(calendarContainer, state);
-}
-
-// ========= 用户信息 =========
 function updateUser(user) {
   if (!user) return;
 
@@ -75,79 +45,72 @@ function updateUser(user) {
   if (userAvatar && user.photoURL) userAvatar.src = user.photoURL;
 }
 
-// ========= 顶部按钮 =========
-function bindNavigation() {
-  prevBtn && (prevBtn.onclick = () => {
-    state.currentDate = new Date(
-      state.currentDate.getFullYear(),
-      state.currentDate.getMonth() - 1,
-      1
-    );
-    render();
-  });
-
-  nextBtn && (nextBtn.onclick = () => {
-    state.currentDate = new Date(
-      state.currentDate.getFullYear(),
-      state.currentDate.getMonth() + 1,
-      1
-    );
-    render();
-  });
-
-  todayBtn && (todayBtn.onclick = () => {
-    state.currentDate = new Date();
-    render();
-  });
+// ========= 渲染 =========
+function render() {
+  renderCalendar(calendarContainer, state);
 }
 
-// ========= 视图切换 =========
-function bindViewSwitch() {
-  monthViewBtn && (monthViewBtn.onclick = () => {
-    state.currentView = "month";
-    monthViewBtn.classList.add("active");
-    yearViewBtn?.classList.remove("active");
-    render();
-  });
+// ========= 错误处理（🔥关键） =========
+function handleError(err) {
+  console.error(err);
 
-  yearViewBtn && (yearViewBtn.onclick = () => {
-    state.currentView = "year";
-    yearViewBtn.classList.add("active");
-    monthViewBtn?.classList.remove("active");
-    render();
-  });
-}
-
-// ========= 分享功能 =========
-function bindShare() {
-  if (!shareBtn) return;
-
-  shareBtn.onclick = () => {
-    const data = btoa(JSON.stringify(state.entries));
-    const link = `${location.origin}?data=${data}`;
-
-    navigator.clipboard.writeText(link);
-    alert("Share link copied!");
-  };
-
-  // 打开别人分享
-  const params = new URLSearchParams(location.search);
-  if (params.get("data")) {
-    try {
-      state.entries = JSON.parse(atob(params.get("data")));
-    } catch {}
+  if (!err || !err.message) {
+    alert("Unknown error");
+    return;
   }
+
+  // 🔥 API KEY 错误
+  if (err.message.includes("api-key-not-valid")) {
+    alert("❌ Firebase配置错误（API KEY不对）\n去 firebase.js 重新复制 config");
+    return;
+  }
+
+  // 🔥 未授权域名
+  if (err.message.includes("auth/unauthorized-domain")) {
+    alert("❌ 域名未授权\n去 Firebase → Authentication → Settings 添加域名");
+    return;
+  }
+
+  // 🔥 popup 被阻止
+  if (err.message.includes("popup-blocked")) {
+    alert("❌ 浏览器拦截登录弹窗，请允许弹窗");
+    return;
+  }
+
+  // 默认
+  alert(err.message);
 }
 
-// ========= 登录监听 =========
+// ========= 登录 =========
+loginBtn && (loginBtn.onclick = async () => {
+  try {
+    await loginWithGoogle();
+  } catch (err) {
+    handleError(err);
+  }
+});
+
+// ========= 登出 =========
+logoutBtn && (logoutBtn.onclick = async () => {
+  try {
+    await logoutUser();
+  } catch (err) {
+    handleError(err);
+  }
+});
+
+// ========= Auth监听 =========
 watchAuthState(async (user) => {
   state.currentUser = user;
 
   if (user) {
     updateUser(user);
 
-    // ☁️ 从云加载
-    await syncFromCloud();
+    try {
+      await syncFromCloud();
+    } catch (err) {
+      handleError(err);
+    }
 
     showApp();
     render();
@@ -156,25 +119,56 @@ watchAuthState(async (user) => {
   }
 });
 
-// ========= 登录按钮 =========
-loginBtn && (loginBtn.onclick = async () => {
-  try {
-    await loginWithGoogle();
-  } catch (err) {
-    alert(err.message);
-  }
+// ========= 导航 =========
+prevBtn && (prevBtn.onclick = () => {
+  state.currentDate = new Date(
+    state.currentDate.getFullYear(),
+    state.currentDate.getMonth() - 1,
+    1
+  );
+  render();
 });
 
-logoutBtn && (logoutBtn.onclick = async () => {
-  try {
-    await logoutUser();
-  } catch (err) {
-    alert(err.message);
-  }
+nextBtn && (nextBtn.onclick = () => {
+  state.currentDate = new Date(
+    state.currentDate.getFullYear(),
+    state.currentDate.getMonth() + 1,
+    1
+  );
+  render();
 });
 
-// ========= 初始化 =========
-fillUI();
-bindNavigation();
-bindViewSwitch();
-bindShare();
+todayBtn && (todayBtn.onclick = () => {
+  state.currentDate = new Date();
+  render();
+});
+
+// ========= 视图 =========
+monthViewBtn && (monthViewBtn.onclick = () => {
+  state.currentView = "month";
+  render();
+});
+
+yearViewBtn && (yearViewBtn.onclick = () => {
+  state.currentView = "year";
+  render();
+});
+
+// ========= 分享 =========
+if (shareBtn) {
+  shareBtn.onclick = () => {
+    const data = btoa(JSON.stringify(state.entries));
+    const link = `${location.origin}?data=${data}`;
+
+    navigator.clipboard.writeText(link);
+    alert("Share link copied!");
+  };
+}
+
+// ========= 读取分享 =========
+const params = new URLSearchParams(location.search);
+if (params.get("data")) {
+  try {
+    state.entries = JSON.parse(atob(params.get("data")));
+  } catch {}
+}
