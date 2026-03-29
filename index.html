@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -95,14 +95,7 @@
               <div class="small" id="todayHint"></div>
             </div>
 
-            <div id="monthView">
-              <div id="weekdayRow" class="weekday-row"></div>
-              <div id="calendarGrid" class="calendar-grid"></div>
-            </div>
-
-            <div id="yearView" class="hidden">
-              <div id="yearGrid" class="year-grid"></div>
-            </div>
+            <div id="calendarContainer"></div>
           </div>
 
           <div class="panel side-panel">
@@ -132,119 +125,25 @@
 
       <section id="sharedPage" class="page">
         <div class="panel">
-          <h2 id="sharedPageTitle"></h2>
-          <p id="sharedPageDesc"></p>
-
-          <div class="share-grid">
-            <div class="share-box">
-              <h3 id="inviteTitle"></h3>
-              <div id="inviteDesc" class="small mb12"></div>
-              <div class="row-wrap">
-                <input id="inviteEmailInput" type="email" />
-                <select id="inviteRoleSelect">
-                  <option value="editor">editor</option>
-                  <option value="viewer">viewer</option>
-                </select>
-                <button id="inviteBtn" class="primary"></button>
-              </div>
-              <div id="shareStatus" class="status-text"></div>
-            </div>
-
-            <div class="share-box">
-              <h3 id="ownSharedTitle"></h3>
-              <div id="ownSharedDesc" class="small mb12"></div>
-              <div id="ownSharedUsersList"></div>
-            </div>
-          </div>
-
-          <div class="share-box mt16">
-            <h3 id="sharedWithMeTitle"></h3>
-            <div id="sharedWithMeDesc" class="small mb12"></div>
-            <div id="sharedCalendarsList"></div>
-          </div>
+          <h2 id="sharedPageTitle">Sharing</h2>
+          <p id="sharedPageDesc">Sharing page placeholder.</p>
         </div>
       </section>
 
       <section id="profilePage" class="page">
         <div class="panel">
-          <h2 id="profilePageTitle"></h2>
-          <p id="profilePageDesc"></p>
-
-          <div class="profile-layout">
-            <div class="profile-summary">
-              <img id="profileAvatar" class="avatar-large" alt="avatar" />
-              <div id="profileDisplayName" class="profile-name"></div>
-              <div id="profileDisplayEmail" class="profile-email"></div>
-            </div>
-
-            <div>
-              <div class="profile-form">
-                <div class="field full">
-                  <label id="labelName"></label>
-                  <input id="profileNameInput" type="text" />
-                </div>
-                <div class="field">
-                  <label id="labelEmail"></label>
-                  <input id="profileEmailInput" type="email" disabled />
-                </div>
-                <div class="field">
-                  <label id="labelPhone"></label>
-                  <input id="profilePhoneInput" type="text" />
-                </div>
-                <div class="field">
-                  <label id="labelBirthday"></label>
-                  <input id="profileBirthdayInput" type="date" />
-                </div>
-              </div>
-
-              <div class="row-wrap mt16">
-                <button id="saveProfileBtn" class="primary"></button>
-              </div>
-              <div id="profileStatus" class="status-text"></div>
-            </div>
-          </div>
+          <h2 id="profilePageTitle">Profile</h2>
+          <p id="profilePageDesc">Profile page placeholder.</p>
         </div>
       </section>
 
       <section id="settingsPage" class="page">
         <div class="panel">
-          <h2 id="settingsPageTitle"></h2>
-          <p id="settingsPageDesc"></p>
-
-          <div class="field" style="max-width: 220px;">
-            <label id="languageLabel"></label>
-            <select id="languageSelect">
-              <option value="zh">中文</option>
-              <option value="en">English</option>
-            </select>
-          </div>
+          <h2 id="settingsPageTitle">Settings</h2>
+          <p id="settingsPageDesc">Settings page placeholder.</p>
         </div>
       </section>
     </main>
-  </div>
-
-  <div id="dayModal" class="modal hidden">
-    <div class="modal-card">
-      <div class="row-between mb12">
-        <div>
-          <div id="selectedDateText" class="modal-title"></div>
-          <div id="dateModalDesc" class="small"></div>
-        </div>
-        <button id="closeModalBtn">×</button>
-      </div>
-
-      <div id="optionGrid" class="option-grid"></div>
-
-      <div class="field mt16">
-        <label id="noteLabel"></label>
-        <textarea id="noteInput" rows="4"></textarea>
-      </div>
-
-      <div class="row-wrap mt16">
-        <button id="saveNoteBtn" class="primary"></button>
-        <button id="clearDayBtn"></button>
-      </div>
-    </div>
   </div>
 
   <script type="module" src="./js/main.js"></script>
